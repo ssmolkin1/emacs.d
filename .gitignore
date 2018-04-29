@@ -1,0 +1,7 @@
+# Ignore everything
+*
+
+# But not these files or subdirs
+!.gitignore
+!init.el
+!./snippets/
