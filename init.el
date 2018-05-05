@@ -34,6 +34,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(company-dabbrev-code-ignore-case t)
+ '(company-minimum-prefix-length 2)
  '(custom-safe-themes
    (quote
     ("065efdd71e6d1502877fd5621b984cded01717930639ded0e569e1724d058af8" "a27c00821ccfd5a78b01e4f35dc056706dd9ede09a8b90c6955ae6a390eb1c1e" "84d2f9eeb3f82d619ca4bfffe5f157282f4779732f48a5ac1484d94d5ff5b279" "3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" default)))
@@ -115,6 +116,7 @@
   "Load themre, then set cursor colors."
   (interactive)
   (load-theme 'xresources)
+  (set-background-color "black")
   (set-cursor-color "#3498DB"))
 
 (fset 'macro-intero-insert-type
