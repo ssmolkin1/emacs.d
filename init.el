@@ -6,7 +6,7 @@
 ;; frame visuals
 (add-to-list 'default-frame-alist '(foreground-color . "white"))
 (add-to-list 'default-frame-alist '(background-color . "black"))
-(add-to-list 'default-frame-alist '(font . "IBM Plex Mono-18"))
+(add-to-list 'default-frame-alist '(font . "IBM Plex Mono-20"))
 (add-to-list 'default-frame-alist '(vertical-scroll-bars . nil))
 ;; Path
 (add-to-list 'exec-path "/home/sam/.node_modules_global/bin")
@@ -37,7 +37,7 @@
  '(company-minimum-prefix-length 2)
  '(custom-safe-themes
    (quote
-    ("065efdd71e6d1502877fd5621b984cded01717930639ded0e569e1724d058af8" "a27c00821ccfd5a78b01e4f35dc056706dd9ede09a8b90c6955ae6a390eb1c1e" "84d2f9eeb3f82d619ca4bfffe5f157282f4779732f48a5ac1484d94d5ff5b279" "3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" default)))
+    ("1195d71dfd46c43492993a528336ac7f8c7400b4c58338e5b40329d6cad655b6" "065efdd71e6d1502877fd5621b984cded01717930639ded0e569e1724d058af8" "a27c00821ccfd5a78b01e4f35dc056706dd9ede09a8b90c6955ae6a390eb1c1e" "84d2f9eeb3f82d619ca4bfffe5f157282f4779732f48a5ac1484d94d5ff5b279" "3c83b3676d796422704082049fc38b6966bcad960f896669dfc21a7a37a748fa" default)))
  '(evil-ex-search-persistent-highlight t)
  '(geiser-mode-eval-last-sexp-to-buffer nil)
  '(geiser-mode-start-repl-p t)
@@ -47,7 +47,7 @@
  '(magit-commit-arguments (quote ("--all")))
  '(package-selected-packages
    (quote
-    (company-c-headers yasnippet dtrt-indent hlint-refactor helm-ag company-solidity intero haskell-mode helm-company company-tern helm-projectile projectile ox-gfm evil-mc indium paredit solidity-mode magit ace-window geiser flycheck evil-surround company-quickhelp company powerline-evil rainbow-delimiters xresources-theme evil-leader helm evil-visual-mark-mode))))
+    (pdf-tools auctex company-c-headers yasnippet dtrt-indent hlint-refactor helm-ag company-solidity intero haskell-mode helm-company company-tern helm-projectile projectile ox-gfm evil-mc indium paredit solidity-mode magit ace-window geiser flycheck evil-surround company-quickhelp company powerline-evil rainbow-delimiters xresources-theme evil-leader helm evil-visual-mark-mode))))
 
 ;; Use-package
 (unless (package-installed-p 'use-package)
@@ -118,6 +118,11 @@
   (load-theme 'xresources)
   (set-background-color "black")
   (set-cursor-color "#3498DB"))
+
+(defun my-find-user-init-file ()
+  "Edit the `user-init-file', in another window."
+  (interactive)
+  (find-file-other-window user-init-file))
 
 (fset 'macro-intero-insert-type
    "\C-u\C-c\C-t")
@@ -195,6 +200,7 @@
   (global-evil-leader-mode)
   (evil-leader/set-leader ",")
   (evil-leader/set-key
+    "`"  'helm-all-mark-rings
     "ia" 'my-insert-line-above
     "ib" 'my-insert-line-below
     "da" 'my-delete-line-above
@@ -521,7 +527,58 @@
 (setq gdb-many-windows t)
 (setq gdb-show-main t)
 
+;; ========= LaTeX ===============
+(use-package tex-site
+  :ensure auctex
+  :mode ("\\.tex\\'" . latex-mode)
+  :config
+  (setq TeX-auto-save t)
+  (setq TeX-parse-self t)
+  (setq-default TeX-master nil)
+  (add-hook 'LaTeX-mode-hook
+            (lambda ()
+              (rainbow-delimiters-mode)
+              (company-mode)
+              (turn-on-reftex)
+              (setq reftex-plug-into-AUCTeX t)
+              (reftex-isearch-minor-mode)
+              (setq TeX-PDF-mode t)
+              (setq TeX-source-correlate-method 'synctex)
+              (setq TeX-source-correlate-start-server t)))
+
+;; Update PDF buffers after successful LaTeX runs
+(add-hook 'TeX-after-TeX-LaTeX-command-finished-hook
+           #'TeX-revert-document-buffer)
+
+;; to use pdfview with auctex
+(add-hook 'LaTeX-mode-hook 'pdf-tools-install)
+
+;; to use pdfview with auctex
+(setq TeX-view-program-selection '((output-pdf "pdf-tools"))
+       TeX-source-correlate-start-server t)
+(setq TeX-view-program-list '(("pdf-tools" "TeX-pdf-tools-sync-view"))))
+;;; need to disable linum to avoid warning messages
+(add-hook 'pdf-view-mode-hook (lambda() (linum-mode -1)))
+
+;; auto reference install
+(use-package reftex
+  :ensure t
+  :defer t
+  :config
+  (setq reftex-cite-prompt-optional-args t)); Prompt for empty optional arguments in cite
+
+;; pdf tools for working with PDFs
+(use-package pdf-tools
+  :ensure t
+  :mode ("\\.pdf\\'" . pdf-tools-install)
+  :bind ("C-c C-g" . pdf-sync-forward-search)
+  :defer t
+  :config
+  (setq mouse-wheel-follow-mouse t))
+
 ;; ========= Key Bindings ===============
+;; easy access init.el
+(global-set-key (kbd "C-c I") 'my-find-user-init-file)
 ;; Esc works like in Vim
 (global-set-key (kbd "<escape>")      'keyboard-escape-quit)
 
