@@ -9,6 +9,7 @@
 (add-to-list 'default-frame-alist '(font . "IBM Plex Mono-20"))
 (add-to-list 'default-frame-alist '(vertical-scroll-bars . nil))
 ;; Path
+(add-to-list 'exec-path "/home/sam/.cargo/bin")
 (add-to-list 'exec-path "/home/sam/.node_modules_global/bin")
 (add-to-list 'exec-path "/home/sam/.local/bin")
 (setenv "PATH"
@@ -47,7 +48,7 @@
  '(magit-commit-arguments (quote ("--all")))
  '(package-selected-packages
    (quote
-    (pdf-tools auctex company-c-headers yasnippet dtrt-indent hlint-refactor helm-ag company-solidity intero haskell-mode helm-company company-tern helm-projectile projectile ox-gfm evil-mc indium paredit solidity-mode magit ace-window geiser flycheck evil-surround company-quickhelp company powerline-evil rainbow-delimiters xresources-theme evil-leader helm evil-visual-mark-mode))))
+    (lsp-rust lsp-ui lsp-mode rust-snippets racer flycheck-rust rust-mode flycheck-inline pdf-tools auctex company-c-headers yasnippet dtrt-indent hlint-refactor helm-ag company-solidity intero haskell-mode helm-company company-tern helm-projectile projectile ox-gfm evil-mc indium paredit solidity-mode magit ace-window geiser flycheck evil-surround company-quickhelp company powerline-evil rainbow-delimiters xresources-theme evil-leader helm evil-visual-mark-mode))))
 
 ;; Use-package
 (unless (package-installed-p 'use-package)
@@ -104,7 +105,8 @@
   (paredit-open-curly)
   (insert " ")
   (save-excursion
-    (insert " ")))
+    (insert " ")
+    (paredit-close-curly)))
 
 (defun my-paredit-no-space-before-delims ()
   "Turn off space before delimiters."
@@ -277,6 +279,19 @@
 (use-package flycheck
   :ensure t
   :init (global-flycheck-mode))
+
+(use-package flycheck-inline
+  :ensure t
+  :after (flycheck))
+
+(use-package lsp-mode
+  :ensure t
+  :config)
+
+(use-package lsp-ui
+  :ensure t
+  :after (lsp-mode)
+  :config (add-hook 'lsp-mode-hook 'lsp-ui-mode))
 
 (use-package paredit
   :ensure t
@@ -493,12 +508,56 @@
                (if in-switch-p
                    (+ indent js-switch-indent-offset)
                  indent))))
+
           ((js--continued-expression-p)
            (+ js-indent-level js-expr-indent-offset))
           (t 0))))
 
 (advice-add 'js--proper-indentation :override 'js--proper-indentation-custom)
 
+;; ========= Rust ===============
+(use-package rust-mode
+  :ensure t
+  :mode ("\\.rs\\'" . rust-mode)
+  :config (configure-rust/setup-env)
+  (add-hook 'rust-mode-hook 'disable-paredit-mode)
+  (add-hook 'rust-mode-hook 'electric-pair-mode))
+
+(use-package flycheck-rust
+  :ensure t
+  :after (flycheck)
+  :config (with-eval-after-load 'rust-mode
+    (add-hook 'flycheck-mode-hook #'flycheck-rust-setup)))
+
+(use-package racer
+  :ensure t
+  :config (add-hook 'rust-mode-hook #'racer-mode)
+  (add-hook 'racer-mode-hook #'eldoc-mode)
+  (add-hook 'racer-mode-hook #'company-mode))
+
+(use-package lsp-rust
+  :ensure t
+  :after (lsp-mode rust-mode)
+  :config (setq lsp-rust-rls-command '("rustup" "run" "nightly" "rls"))
+  (add-hook 'rust-mode-hook #'lsp-rust-enable))
+
+(defun configure-rust/setup-env ()
+  "RLS requires some environment variables to be setup. We use rustup to get the values."
+  
+  (when (executable-find "rustup")
+    (require 's)
+    (require 'dash)
+    (setq rust-default-toolchain
+          (car (s-split " " (-first
+                             (lambda (line) (s-match "default" line)) 
+                             (s-lines (shell-command-to-string "rustup toolchain list"))))))
+    ;; tell racer to use the rustup-managed rust-src
+    ;; rustup component add rust-src
+    (setq rust-src-path (concat (getenv "HOME") "/.multirust/toolchains/" rust-default-toolchain "/lib/rustlib/src/rust/src"))
+    (setq rust-bin-path (concat (getenv "HOME") "/.multirust/toolchains/" rust-default-toolchain "/bin"))
+    (setq racer-rust-src-path rust-src-path)
+    (setenv "RUST_SRC_PATH" rust-src-path)
+    (setenv "RUSTC" rust-bin-path)))
 ;; ========= C ===============
 ;;; Note to self -- I use CC-mode for C
 
@@ -575,6 +634,9 @@
   :defer t
   :config
   (setq mouse-wheel-follow-mouse t))
+
+;; word wrap
+(add-hook 'LaTeX-mode-hook 'toggle-word-wrap)
 
 ;; ========= Key Bindings ===============
 ;; easy access init.el
